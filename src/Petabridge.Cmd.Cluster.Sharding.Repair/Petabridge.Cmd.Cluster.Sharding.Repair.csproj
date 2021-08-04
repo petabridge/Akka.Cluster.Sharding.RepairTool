@@ -7,7 +7,10 @@
 
     <ItemGroup>
         <PackageReference Include="Akka.Cluster.Sharding" Version="$(AkkaVersion)" />
-        <PackageReference Include="Petabridge.Cmd.Host" Version="$(PbmVersion)"/>
+        <PackageReference Include="Petabridge.Cmd.Host" Version="$(PbmVersion)" />
+        <PackageReference Include="Akka.Persistence.Query" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.DependencyInjection" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.Persistence.Query.Sql" Version="$(AkkaVersion)" />
     </ItemGroup>
 
     <ItemGroup>
