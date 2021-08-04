@@ -14,9 +14,9 @@ variables:
   - name: githubConnectionName
     value: Releases
   - name: projectName
-    value: yourProjectName #replace this
+    value: Akka.Cluster.Sharding.RepairTool
   - name: githubRepositoryName
-    value: yourOrganization/yourRepo #replace this
+    value: petabridge/Akka.Cluster.Sharding.RepairTool
 
 steps:
 - task: BatchScript@1
