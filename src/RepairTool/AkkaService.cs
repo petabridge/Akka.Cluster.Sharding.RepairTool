@@ -10,15 +10,15 @@ using Microsoft.Extensions.Hosting;
 using System.Threading;
 using System;
 using Akka.DependencyInjection;
+using Petabridge.Cmd.Cluster.Sharding.Repair;
 
 namespace Petabridge.App
 {
     /// <summary>
     /// <see cref="IHostedService"/> that runs and manages <see cref="ActorSystem"/> in background of application.
     /// </summary>
-    public class AkkaService : IHostedService
+    public class AkkaService : IHostedService, IPbmClientService
     {
-        private ActorSystem ClusterSystem;
         private readonly IServiceProvider _serviceProvider;
 
         public AkkaService(IServiceProvider serviceProvider)
@@ -42,18 +42,23 @@ namespace Petabridge.App
             var actorSystemSetup = bootstrap.And(diSetup);
 
             // start ActorSystem
-            ClusterSystem = ActorSystem.Create("ClusterSys", actorSystemSetup);
+            Sys = ActorSystem.Create("ClusterSys", actorSystemSetup);
 
             // start Petabridge.Cmd (https://cmd.petabridge.com/)
-            var pbm = PetabridgeCmd.Get(ClusterSystem);
-            pbm.RegisterCommandPalette(ClusterCommands.Instance);
-            pbm.RegisterCommandPalette(RemoteCommands.Instance);
+            var pbm = PetabridgeCmd.Get(Sys);
+            pbm.RegisterCommandPalette(ClusterShardingRepairCommands.Instance);
             pbm.Start(); // begin listening for PBM management commands
+
+            // expose to external services
+            Cmd = pbm;
 
             // instantiate actors
 
             // use the ServiceProvider ActorSystem Extension to start DI'd actors
-            var sp = ServiceProvider.For(ClusterSystem);
+            var sp = ServiceProvider.For(Sys);
+            
+            Sys.Log.Info("Akka.Cluster.Sharding.RepairTool started. Connect with a Petabridge.Cmd (https://cmd.petabridge.com/) client to get started.");
+            Sys.Log.Warning("This application should never be run when connected to a live, running cluster. Always make sure sharding is not in-use before using this.");
             
             return Task.CompletedTask;
         }
@@ -62,8 +67,11 @@ namespace Petabridge.App
         {
             // strictly speaking this may not be necessary - terminating the ActorSystem would also work
             // but this call guarantees that the shutdown of the cluster is graceful regardless
-             await CoordinatedShutdown.Get(ClusterSystem).Run(CoordinatedShutdown.ClrExitReason.Instance);
+             await CoordinatedShutdown.Get(Sys).Run(CoordinatedShutdown.ClrExitReason.Instance);
         }
+
+        public PetabridgeCmd Cmd { get; private set; }
+        public ActorSystem Sys { get; private set; }
     }
    
 }

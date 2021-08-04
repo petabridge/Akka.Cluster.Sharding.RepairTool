@@ -22,4 +22,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionsVersion)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Petabridge.Cmd.Cluster.Sharding.Repair\Petabridge.Cmd.Cluster.Sharding.Repair.csproj" />
+  </ItemGroup>
+
 </Project>
