@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="..\common.props" />
+    <Import Project="..\skipAppDomainsMono.props" />
+
+    <PropertyGroup>
+        <TargetFramework>$(NetCoreTestVersion)</TargetFramework>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Akka.Cluster.Sharding" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.Persistence.Sqlite" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.Serialization.Hyperion" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.TestKit.Xunit2" Version="$(AkkaVersion)" />
+        <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftSdkVersion)" />
+        <PackageReference Include="xunit" Version="$(XunitVersion)" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="$(XunitVersion)"/>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <None Update="data.db">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Petabridge.Cmd.Cluster.Sharding.Repair\Petabridge.Cmd.Cluster.Sharding.Repair.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="store.db" />
+      <EmbeddedResource Include="store.db" />
+    </ItemGroup>
+
+</Project>
