@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 using Akka;
 using Akka.Actor;
+using Akka.Configuration;
 using Akka.Persistence.Query;
 using Akka.Persistence.Query.Sql;
 using Akka.Streams.Dsl;
@@ -36,10 +38,12 @@ namespace RepairTool
                 // SEE THE DOCUMENTATION: https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool
                 return new PlaceholderReadJournal();
             };
+            
+            var config = ConfigurationFactory.ParseString(File.ReadAllText("app.conf"));
 
             var repairRunner = new RepairRunner();
 
-            await repairRunner.Run(queryMapper);
+            await repairRunner.Run(queryMapper, config);
         }
     }
    

@@ -17,7 +17,7 @@ namespace RepairTool
     /// </summary>
     public class RepairRunner
     {
-        public async Task Run(Func<ActorSystem, ICurrentPersistenceIdsQuery> queryIdMapper, CancellationToken? token = null)
+        public async Task Run(Func<ActorSystem, ICurrentPersistenceIdsQuery> queryIdMapper, Config config, CancellationToken? token = null)
         {
             /*
              * STARTUP CHECK
@@ -30,8 +30,7 @@ namespace RepairTool
              */
 
             var finalToken = token ?? CancellationToken.None;
-
-            var config = ConfigurationFactory.ParseString(File.ReadAllText("app.conf"));
+            
             if (!config.HasPath("akka.persistence.journal.plugin"))
                 throw new ApplicationException(
                     "No akka.persistence.journal.plugin defined inside 'app.conf'. App will not run correctly. " +
