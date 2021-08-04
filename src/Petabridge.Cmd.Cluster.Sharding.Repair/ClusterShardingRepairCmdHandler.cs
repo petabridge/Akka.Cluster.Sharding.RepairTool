@@ -24,7 +24,7 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
         {
             Process(PrintInternalClusterShardingData.Name, cmd =>
             {
-                var sp = ServiceProvider.For(Context.System);
+                var sp = DependencyResolver.For(Context.System);
                 var sender = Sender;
                 var props = sp.Props<ClusterShardingEntityPrinter>(sender, false);
                 Context.ActorOf(props, "printer" + _printCounter++);
@@ -32,7 +32,7 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
             
             Process(PrintShardRegionNameData.Name, cmd =>
             {
-                var sp = ServiceProvider.For(Context.System);
+                var sp = DependencyResolver.For(Context.System);
                 var sender = Sender;
                 var props = sp.Props<ClusterShardingEntityPrinter>(sender, true);
                 Context.ActorOf(props, "printer" + _printCounter++);

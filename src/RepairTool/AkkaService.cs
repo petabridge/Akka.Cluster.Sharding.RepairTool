@@ -34,7 +34,7 @@ namespace RepairTool
             // N.B. `WithActorRefProvider` isn't actually needed here - the HOCON file already specifies Akka.Cluster
 
             // enable DI support inside this ActorSystem, if needed
-            var diSetup = ServiceProviderSetup.Create(_serviceProvider);
+            var diSetup = DependencyResolverSetup.Create(_serviceProvider);
 
             // merge this setup (and any others) together into ActorSystemSetup
             var actorSystemSetup = bootstrap.And(diSetup);
@@ -44,17 +44,10 @@ namespace RepairTool
 
             // start Petabridge.Cmd (https://cmd.petabridge.com/)
             var pbm = PetabridgeCmd.Get(Sys);
-            pbm.RegisterCommandPalette(ClusterShardingRepairCommands.Instance);
-            pbm.Start(); // begin listening for PBM management commands
 
             // expose to external services
             Cmd = pbm;
 
-            // instantiate actors
-
-            // use the ServiceProvider ActorSystem Extension to start DI'd actors
-            var sp = ServiceProvider.For(Sys);
-            
             Sys.Log.Info("Akka.Cluster.Sharding.RepairTool started. Connect with a Petabridge.Cmd (https://cmd.petabridge.com/) client to get started.");
             Sys.Log.Warning("This application should never be run when connected to a live, running cluster. Always make sure sharding is not in-use before using this.");
             

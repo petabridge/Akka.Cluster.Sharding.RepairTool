@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using Akka;
 using Akka.Actor;
 using Akka.Persistence.Query;
 using Akka.Streams;
@@ -20,10 +19,10 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
         }
 
         private readonly IActorRef _reporter;
-        private readonly IPersistenceIdsQuery _readJournal;
+        private readonly ICurrentPersistenceIdsQuery _readJournal;
         private bool _regionsOnly;
 
-        public ClusterShardingEntityPrinter(IPersistenceIdsQuery readJournal, bool regionsOnly, IActorRef reporter)
+        public ClusterShardingEntityPrinter(ICurrentPersistenceIdsQuery readJournal, bool regionsOnly, IActorRef reporter)
         {
             _readJournal = readJournal;
             _regionsOnly = regionsOnly;
@@ -39,11 +38,12 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
                     return;
                 }
                 
-                _reporter.Tell(new CommandResponse(str));
+                _reporter.Tell(new CommandResponse(str, false));
             });
 
             Receive<PrintComplete>(_ =>
             {
+                // terminate response stream
                 _reporter.Tell(CommandResponse.Empty);
                 Context.Stop(Self);
             });
@@ -51,7 +51,7 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
 
         protected override void PreStart()
         {
-            var source = _readJournal.PersistenceIds().Where(x => x.StartsWith("/system/sharding"));
+            var source = _readJournal.CurrentPersistenceIds().Where(x => x.StartsWith("/system/sharding"));
             var sink = Sink.ActorRef<string>(Self, PrintComplete.Instance);
             source.RunWith(sink, Context.Materializer());
         }
