@@ -1,7 +1,7 @@
 ﻿using Akka.Actor;
 using Petabridge.Cmd.Host;
 
-namespace Petabridge.App
+namespace RepairTool
 {
     /// <summary>
     /// Used to retrieve access to <see cref="PetabridgeCmd"/> associated with the current

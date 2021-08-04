@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Configuration;
 using System.IO;
 using System.Threading.Tasks;
 using Akka.Configuration;
@@ -7,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Petabridge.App
+namespace RepairTool
 {
     public class Program
     {
@@ -31,7 +30,7 @@ namespace Petabridge.App
             
             if (!config.HasPath("akka.persistence.snapshot-store.plugin"))
                 throw new ApplicationException(
-                    "No akka.persistence.journal.plugin defined inside 'app.conf'. App will not run correctly. " +
+                    "No akka.persistence.snapshot-store.plugin defined inside 'app.conf'. App will not run correctly. " +
                     "Please see https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool for instructions.");
             
             var host = new HostBuilder()

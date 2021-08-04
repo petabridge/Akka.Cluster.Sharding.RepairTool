@@ -1,18 +1,16 @@
+using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Bootstrap.Docker;
 using Akka.Configuration;
-using Petabridge.Cmd.Cluster;
-using Petabridge.Cmd.Host;
-using Petabridge.Cmd.Remote;
-using Microsoft.Extensions.Hosting;
-using System.Threading;
-using System;
 using Akka.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Petabridge.Cmd.Cluster.Sharding.Repair;
+using Petabridge.Cmd.Host;
 
-namespace Petabridge.App
+namespace RepairTool
 {
     /// <summary>
     /// <see cref="IHostedService"/> that runs and manages <see cref="ActorSystem"/> in background of application.
