@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(NetCoreFramework)</TargetFramework>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Akka.Cluster.Sharding" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.Persistence.Sqlite" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.Serialization.Hyperion" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.TestKit.Xunit2" Version="$(AkkaVersion)" />
+        <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(TestSdkVersion)" />
+        <PackageReference Include="xunit" Version="$(XunitVersion)" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="$(XunitVersion)"/>
+        <PackageReference Include="Docker.DotNet" Version="$(DockerVersion)" />
+    </ItemGroup>
+
+</Project>

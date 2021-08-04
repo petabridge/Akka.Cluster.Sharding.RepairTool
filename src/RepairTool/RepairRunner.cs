@@ -15,9 +15,9 @@ namespace RepairTool
     /// <summary>
     /// Implementation of repair tool
     /// </summary>
-    public static class RepairRunner
+    public class RepairRunner
     {
-        public static async Task Run(Func<ActorSystem, ICurrentPersistenceIdsQuery> queryIdMapper, CancellationToken? token = null)
+        public async Task Run(Func<ActorSystem, ICurrentPersistenceIdsQuery> queryIdMapper, CancellationToken? token = null)
         {
             /*
              * STARTUP CHECK
@@ -59,6 +59,8 @@ namespace RepairTool
                 .UseConsoleLifetime()
                 .Build();
 
+            ServiceProvider = host.Services;
+            
             await host.StartAsync(finalToken);
 
             var clientService = host.Services.GetRequiredService<IPbmClientService>();
@@ -70,5 +72,7 @@ namespace RepairTool
 
             await host.WaitForShutdownAsync(finalToken);
         }
+        
+        public IServiceProvider ServiceProvider { get; private set; }
     }
 }

@@ -37,7 +37,9 @@ namespace RepairTool
                 return new PlaceholderReadJournal();
             };
 
-            await RepairRunner.Run(queryMapper);
+            var repairRunner = new RepairRunner();
+
+            await repairRunner.Run(queryMapper);
         }
     }
    
