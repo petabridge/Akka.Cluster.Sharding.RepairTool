@@ -1,18 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\common.props" />
-
     <PropertyGroup>
-        <TargetFramework>$(NetStandardVersion)</TargetFramework>
+        <TargetFramework>$(LibraryFramework)</TargetFramework>
         <Description>Akka.Cluster.Sharding Petabridge.Cmd palettes for shard persistence storage repair.</Description>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Akka.Cluster.Sharding" Version="$(AkkaVersion)" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\Petabridge.Cmd.Host\Petabridge.Cmd.Host.csproj" />
+        <PackageReference Include="Petabridge.Cmd.Host" Version="$(PbmVersion)"/>
     </ItemGroup>
 
     <ItemGroup>

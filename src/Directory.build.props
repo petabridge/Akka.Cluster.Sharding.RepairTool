@@ -1,25 +1,26 @@
 <Project>
   <PropertyGroup>
-    <Copyright>Copyright © 2019 Your Company</Copyright>
-    <Authors>Your Authors</Authors>
+    <Copyright>Copyright © 2015-2021 Petabridge</Copyright>
+    <Authors>Petabridge</Authors>
     <VersionPrefix>0.1.0</VersionPrefix>
     <PackageReleaseNotes>First release</PackageReleaseNotes>
     <PackageIconUrl>
     </PackageIconUrl>
     <PackageProjectUrl>
+      https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool
     </PackageProjectUrl>
     <PackageLicenseUrl>
+      https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool/blob/dev/LICENSE
     </PackageLicenseUrl>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <PropertyGroup>
     <LibraryFramework>netstandard2.0</LibraryFramework>
     <NetCoreFramework>net5</NetCoreFramework>
-    <NBenchVersion>1.2.2</NBenchVersion>
     <XunitVersion>2.4.1</XunitVersion>
     <TestSdkVersion>16.9.4</TestSdkVersion>
     <AkkaVersion>1.4.19</AkkaVersion>
-    <PbmVersion>0.8.3</PbmVersion>
+    <PbmVersion>1.0.1</PbmVersion>
     <FluentAssertionsVersion>5.10.3</FluentAssertionsVersion>
     <MicrosoftExtensionsVersion>5.0.0</MicrosoftExtensionsVersion>
   </PropertyGroup>

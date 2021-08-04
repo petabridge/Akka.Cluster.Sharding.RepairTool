@@ -1,17 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\common.props" />
-
-
-  <PropertyGroup>
+    <PropertyGroup>
     <TargetFramework>$(NetCoreFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
-
-
-  <ItemGroup>
-    <None Remove="app.conf" />
-  </ItemGroup>
-
 
   <ItemGroup>
     <Content Include="app.conf">
@@ -22,8 +13,6 @@
   <ItemGroup>
     <PackageReference Include="Akka.Cluster" Version="$(AkkaVersion)" />
     <PackageReference Include="Akka.DependencyInjection" Version="$(AkkaVersion)" />
-    <PackageReference Include="Petabridge.Cmd.Cluster" Version="$(PbmVersion)" />
-    <PackageReference Include="Petabridge.Cmd.Remote" Version="$(PbmVersion)" />
     <PackageReference Include="Akka.Bootstrap.Docker">
       <Version>0.5.2</Version>
     </PackageReference>

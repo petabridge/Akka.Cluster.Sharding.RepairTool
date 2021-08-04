@@ -1,9 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\common.props" />
-    <Import Project="..\skipAppDomainsMono.props" />
-
     <PropertyGroup>
-        <TargetFramework>$(NetCoreTestVersion)</TargetFramework>
+        <TargetFramework>$(NetCoreFramework)</TargetFramework>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
@@ -13,15 +10,9 @@
         <PackageReference Include="Akka.Serialization.Hyperion" Version="$(AkkaVersion)" />
         <PackageReference Include="Akka.TestKit.Xunit2" Version="$(AkkaVersion)" />
         <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftSdkVersion)" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(TestSdkVersion)" />
         <PackageReference Include="xunit" Version="$(XunitVersion)" />
         <PackageReference Include="xunit.runner.visualstudio" Version="$(XunitVersion)"/>
-    </ItemGroup>
-    
-    <ItemGroup>
-      <None Update="data.db">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
     </ItemGroup>
 
     <ItemGroup>
