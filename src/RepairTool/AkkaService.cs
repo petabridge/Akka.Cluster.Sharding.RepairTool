@@ -6,12 +6,23 @@ using Akka.Actor;
 using Akka.Bootstrap.Docker;
 using Akka.Configuration;
 using Akka.DependencyInjection;
+using Akka.Persistence;
 using Microsoft.Extensions.Hosting;
 using Petabridge.Cmd.Cluster.Sharding.Repair;
 using Petabridge.Cmd.Host;
 
 namespace RepairTool
 {
+    internal sealed class PlumbBob : ReceivePersistentActor
+    {
+        public override string PersistenceId => "plumbbob";
+
+        public PlumbBob()
+        {
+            CommandAny(_ => {});
+        }
+    } 
+    
     /// <summary>
     /// <see cref="IHostedService"/> that runs and manages <see cref="ActorSystem"/> in background of application.
     /// </summary>
@@ -41,6 +52,9 @@ namespace RepairTool
 
             // start ActorSystem
             Sys = ActorSystem.Create("ClusterSys", actorSystemSetup);
+
+            // loads the default Akka.Persistence plugin settings behind the scenes
+            Sys.ActorOf(Props.Create(() => new PlumbBob()), "plumbbob");
 
             // start Petabridge.Cmd (https://cmd.petabridge.com/)
             var pbm = PetabridgeCmd.Get(Sys);

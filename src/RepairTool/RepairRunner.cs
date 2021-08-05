@@ -15,9 +15,10 @@ namespace RepairTool
     /// <summary>
     /// Implementation of repair tool
     /// </summary>
-    public class RepairRunner
+    public class RepairRunner : IAsyncDisposable
     {
-        public async Task Run(Func<ActorSystem, ICurrentPersistenceIdsQuery> queryIdMapper, Config config, CancellationToken? token = null)
+        public async Task Start(Func<ActorSystem, ICurrentPersistenceIdsQuery> queryIdMapper, Config config,
+            CancellationToken? token = null)
         {
             /*
              * STARTUP CHECK
@@ -30,7 +31,7 @@ namespace RepairTool
              */
 
             var finalToken = token ?? CancellationToken.None;
-            
+
             if (!config.HasPath("akka.persistence.journal.plugin"))
                 throw new ApplicationException(
                     "No akka.persistence.journal.plugin defined inside 'app.conf'. App will not run correctly. " +
@@ -41,13 +42,14 @@ namespace RepairTool
                     "No akka.persistence.snapshot-store.plugin defined inside 'app.conf'. App will not run correctly. " +
                     "Please see https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool for instructions.");
 
-            var host = new HostBuilder()
+            _host = new HostBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddLogging();
                     services.AddSingleton<IPbmClientService, AkkaService>();
-                    services.AddTransient<IHostedService, AkkaService>(sp => (AkkaService) sp.GetRequiredService<IPbmClientService>()); // runs Akka.NET
-                    services.AddSingleton<ICurrentPersistenceIdsQuery>(sp =>
+                    services.AddTransient<IHostedService, AkkaService>(sp =>
+                        (AkkaService) sp.GetRequiredService<IPbmClientService>()); // runs Akka.NET
+                    services.AddTransient<ICurrentPersistenceIdsQuery>(sp =>
                     {
                         var pbmService = sp.GetRequiredService<IPbmClientService>();
 
@@ -58,20 +60,37 @@ namespace RepairTool
                 .UseConsoleLifetime()
                 .Build();
 
-            ServiceProvider = host.Services;
+            await _host.StartAsync(finalToken);
             
-            await host.StartAsync(finalToken);
+            
+            ServiceProvider = _host.Services;
 
-            var clientService = host.Services.GetRequiredService<IPbmClientService>();
+            var clientService = _host.Services.GetRequiredService<IPbmClientService>();
 
             var pbm = clientService.Cmd;
             pbm.RegisterCommandPalette(ClusterShardingRepairCommands.Instance);
             pbm.Start();
             clientService.Sys.Log.Info("Cluster.Sharding.RepairTool ready.");
+        }
 
-            await host.WaitForShutdownAsync(finalToken);
+        public async Task WaitForShutdown(CancellationToken? token = null)
+        {
+            var finalToken = token ?? CancellationToken.None;
+            await _host.WaitForShutdownAsync(finalToken);
+        }
+
+        public IServiceProvider ServiceProvider { get; private set; }
+
+        private IHost _host;
+
+        public async ValueTask StopAsync()
+        {
+            await _host.StopAsync();
         }
         
-        public IServiceProvider ServiceProvider { get; private set; }
+        public async ValueTask DisposeAsync()
+        {
+            await _host.StopAsync();
+        }
     }
 }

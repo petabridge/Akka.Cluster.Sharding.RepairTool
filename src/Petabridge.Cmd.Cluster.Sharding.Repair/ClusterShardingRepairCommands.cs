@@ -20,7 +20,7 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
     /// </summary>
     public class ClusterShardingRepairCommands : CommandPaletteHandler
     {
-        public static ClusterShardingRepairCommands Instance = new ClusterShardingRepairCommands();
+        public static readonly ClusterShardingRepairCommands Instance = new ClusterShardingRepairCommands();
         
         private ClusterShardingRepairCommands() : base(ClusterShardingRepairCommandPalette)
         {
@@ -29,20 +29,29 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
 
         public override Props HandlerProps { get; }
 
-        public override void OnRegister(PetabridgeCmd plugin)
-        {
-            // need to validate that end-user configured the plugin correctly
-            try
-            {
-                var dr = DependencyResolver.For(plugin.Sys);
-                var persistenceIdsQuery = dr.Resolver.GetService<ICurrentPersistenceIdsQuery>();
-            }
-            catch (Exception ex)
-            {
-                
-            }
-            
-            base.OnRegister(plugin);
-        }
+        // public override void OnRegister(PetabridgeCmd plugin)
+        // {
+        //     // need to validate that end-user configured the plugin correctly
+        //     try
+        //     {
+        //         var dr = DependencyResolver.For(plugin.Sys);
+        //         var persistenceIdsQuery = dr.Resolver.GetService<ICurrentPersistenceIdsQuery>();
+        //
+        //         if (persistenceIdsQuery == default(ICurrentPersistenceIdsQuery))
+        //             throw new InvalidOperationException(
+        //                 "No ICurrentPersistenceIdsQuery implementation bound to IServiceProvider. Can't start repair.");
+        //     }
+        //     catch (InvalidOperationException)
+        //     {
+        //         throw;
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         throw new InvalidOperationException(
+        //             "No ICurrentPersistenceIdsQuery implementation bound to IServiceProvider. Can't start repair.", ex);
+        //     }
+        //     
+        //     base.OnRegister(plugin);
+        // }
     }
 }

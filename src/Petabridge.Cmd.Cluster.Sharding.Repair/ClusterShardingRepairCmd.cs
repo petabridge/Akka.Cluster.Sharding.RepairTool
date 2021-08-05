@@ -6,7 +6,7 @@
 
 namespace Petabridge.Cmd.Cluster.Sharding.Repair
 {
-    internal static class ClusterShardingRepairCmd
+    public static class ClusterShardingRepairCmd
     {
         public static readonly CommandDefinition PrintInternalClusterShardingData = new CommandDefinitionBuilder()
             .WithName("print-sharding-data")

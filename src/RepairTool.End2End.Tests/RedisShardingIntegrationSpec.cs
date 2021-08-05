@@ -1,18 +1,26 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Actor.Setup;
 using Akka.Cluster.Sharding;
 using Akka.Configuration;
 using Akka.DependencyInjection;
+using Akka.Event;
 using Akka.Persistence;
 using Akka.Persistence.Query;
 using Akka.Persistence.Redis;
 using Akka.Persistence.Redis.Query;
+using Akka.Streams;
+using Akka.Streams.Dsl;
 using Akka.TestKit.Xunit2;
+using Akka.TestKit.Xunit2.Internals;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Petabridge.Cmd;
+using Petabridge.Cmd.Cluster.Sharding.Repair;
+using Petabridge.Cmd.Common.Client;
 using RepairTool.End2End.Tests.Actors;
 using Xunit;
 using Xunit.Abstractions;
@@ -34,7 +42,7 @@ namespace RepairTool.End2End.Tests
                 configuration-string = ""{fixture.ConnectionString}""
                 database = {id}
             }}
-            snapshot-store {{
+            akka.persistence.snapshot-store {{
                         plugin = ""akka.persistence.snapshot-store.redis""
                         redis {{
                             class = ""Akka.Persistence.Redis.Snapshot.RedisSnapshotStore, Akka.Persistence.Redis""
@@ -47,10 +55,10 @@ namespace RepairTool.End2End.Tests
 
         public static Func<ActorSystem, ICurrentPersistenceIdsQuery> QueryMapper = actorSys => actorSys.ReadJournalFor<RedisReadJournal>(RedisReadJournal.Identifier);
 
-        public static ActorSystemSetup CreateSetup(RedisFixture fixture)
+        public static ActorSystemSetup CreateSetup(RedisFixture fixture, int id)
         {
             var serviceCollection = new ServiceCollection();
-            var config = Config(fixture, RedisDatabaseCounter.Next());
+            var config = Config(fixture, id);
             var bootstrap = BootstrapSetup.Create().WithConfig(config).WithActorRefProvider(ProviderSelection.Cluster.Instance);
             return bootstrap.And(DependencyResolverSetup.Create(serviceCollection.BuildServiceProvider()));
         }
@@ -59,10 +67,20 @@ namespace RepairTool.End2End.Tests
         
         public RedisFixture Fixture { get; }
         
-        public RedisShardingIntegrationSpec(ITestOutputHelper output, RedisFixture fixture) : base(CreateSetup(fixture), output: output)
+        /// <summary>
+        /// Need this so we don't include all of the Akka.Cluster/Akka.Remote stuff in the setup for our RepairRunner
+        /// </summary>
+        public Config AkkaPersistenceConfig { get; }
+        
+        public RedisShardingIntegrationSpec(ITestOutputHelper output, RedisFixture fixture) : this(output, fixture, RedisDatabaseCounter.Next())
+        {
+        }
+        
+        protected RedisShardingIntegrationSpec(ITestOutputHelper output, RedisFixture fixture, int databaseId) : base(CreateSetup(fixture, databaseId), output: output)
         {
             Output = output;
             Fixture = fixture;
+            AkkaPersistenceConfig = Config(fixture, databaseId);
         }
         
         [Fact]
@@ -103,8 +121,62 @@ namespace RepairTool.End2End.Tests
             
             // terminate host node - simulate total cluster shutdown
             await Sys.Terminate();
+            
+            var runner = new RepairRunner();
+            using var cts = new CancellationTokenSource();
 
-            /* END ARRANGE */ 
+            /* END ARRANGE */
+
+            try
+            {
+                /* BEGIN ACT */
+                
+                // start running in background
+                await runner.Start(QueryMapper, AkkaPersistenceConfig, cts.Token);
+
+                // wait for Pbm to start
+                await AwaitAssertAsync(async () =>
+                {
+                    var pbm = runner.ServiceProvider.GetRequiredService<IPbmClientService>().Cmd;
+                    var client = await pbm.StartLocalClient(cts.Token);
+                    var palettes = await client.GetAvailablePalettes();
+
+                    // verify that the repair palette is defined in the ActorSystem in the repair process
+                    palettes.Should().Contain(x =>
+                        x.ModuleName.Equals(ClusterShardingRepairCmd.ClusterShardingRepairCommandPalette.ModuleName));
+                });
+
+                var svc = runner.ServiceProvider.GetRequiredService<IPbmClientService>();
+                var actorSystem = svc.Sys;
+                
+                // add Output logger to system
+                var logger = actorSystem.As<ExtendedActorSystem>().SystemActorOf(Props.Create(() => new TestOutputLogger(Output)), "log-test");
+                logger.Tell(new InitializeLogger(actorSystem.EventStream));
+                
+                // query the sharding persistent ids
+                var pbm = svc.Cmd;
+                var clientActual = await pbm.StartLocalClient(cts.Token);
+
+                var materializer = actorSystem.Materializer();
+                
+                var session1 = await clientActual.ExecuteTextCommandAsync("cluster-sharding-repair print-sharding-regions", cts.Token);
+                var sink1 = Sink.Seq<CommandResponse>();
+                var outputFlow = Flow.Create<CommandResponse>().Select(s =>
+                {
+                    Output.WriteLine(s.ToString());
+                    return s;
+                });
+
+                var responses = await session1.Stream.Via(outputFlow).Where(x => !x.Final).RunWith(sink1, materializer);
+                responses.Select(x => x.Msg).Should().BeEquivalentTo(shardRegions);
+
+                /* END ACT */
+            }
+            finally
+            {
+                cts.Cancel();
+                await runner.StopAsync();
+            }    
         }
     }
 }

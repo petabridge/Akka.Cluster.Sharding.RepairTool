@@ -43,7 +43,8 @@ namespace RepairTool
 
             var repairRunner = new RepairRunner();
 
-            await repairRunner.Run(queryMapper, config);
+            await repairRunner.Start(queryMapper, config);
+            await repairRunner.WaitForShutdown();
         }
     }
    
