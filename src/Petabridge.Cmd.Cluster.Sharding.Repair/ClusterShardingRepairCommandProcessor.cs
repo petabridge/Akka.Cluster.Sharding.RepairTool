@@ -48,8 +48,6 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
             
             private readonly IActorRef _replyTo;
 
-            private bool _hasSnapshots = false;
-            
             public RemoveOnePersistenceId(string journalPluginId, string snapshotPluginId, string persistenceId, IActorRef replyTo)
             {
                 JournalPluginId = journalPluginId;
@@ -59,40 +57,28 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
             }
             
             public override string PersistenceId { get; }
-            
+
+            public override Recovery Recovery { get; } = Recovery.None;
+
             protected override bool ReceiveRecover(object message)
             {
-                switch (message)
-                {
-                    case ClusterEvent.IClusterDomainEvent _:
-                        return true;
-                    
-                    case SnapshotOffer _:
-                        _hasSnapshots = true;
-                        return true;
-                    
-                    case RecoveryCompleted _:
-                        DeleteMessages(long.MaxValue);
-                        if(_hasSnapshots)
-                            DeleteSnapshots(new SnapshotSelectionCriteria(long.MaxValue, DateTime.MaxValue, 0, DateTime.MinValue));
-                        else
-                            Context.Become(WaitDeleteMessagesSuccess);
-                        return true;
-                    
-                    default:
-                        return false;
-                }
+                return false;
             }
 
             protected override bool ReceiveCommand(object message)
             {
                 switch (message)
                 {
+                    case Start _: // we've recovered and loaded our LastSeqNr
+                        DeleteMessages(long.MaxValue);
+                        DeleteSnapshots(new SnapshotSelectionCriteria(long.MaxValue, DateTime.MaxValue, 0, DateTime.MinValue));
+                        return true;
+                    
                     case DeleteSnapshotsSuccess _:
                         Context.Become(WaitDeleteMessagesSuccess);
                         return true;
                     
-                    case DeleteMessagesSuccess _:
+                    case DeleteMessagesSuccess d:
                         Context.Become(WaitDeleteSnapshotsSuccess);
                         return true;
                     
@@ -118,7 +104,7 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
             {
                 switch (message)
                 {
-                    case DeleteMessagesSuccess _:
+                    case DeleteMessagesSuccess m:
                         Done();
                         return true;
                     
@@ -146,7 +132,7 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
 
             private void Done()
             {
-                _replyTo.Tell(new Result(new Try<Removals>(new Removals(LastSequenceNr > 0, _hasSnapshots))));
+                _replyTo.Tell(new Result(new Try<Removals>(new Removals(LastSequenceNr > 0, false))));
                 Context.Stop(Self);
             }
             
@@ -154,6 +140,18 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
             {
                 _replyTo.Tell(new Result(new Try<Removals>(cause)));
                 Context.Stop(Self);
+            }
+
+            protected override void PreStart()
+            {
+                Self.Tell(Start.Instance);
+                base.PreStart();
+            }
+
+            private class Start
+            {
+                public static readonly Start Instance = new Start();
+                private Start(){}
             }
         }
 

@@ -6,6 +6,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Akka.DependencyInjection;
 using Petabridge.Cmd.Host;
 using static Petabridge.Cmd.Cluster.Sharding.Repair.ClusterShardingRepairCmd;
 
@@ -17,8 +18,26 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
     /// </summary>
     internal sealed class ClusterShardingRepairCmdHandler: CommandHandlerActor
     {
+        private int _printCounter = 0;
+        
         public ClusterShardingRepairCmdHandler() : base(ClusterShardingRepairCommandPalette)
         {
+            Process(PrintInternalClusterShardingData.Name, cmd =>
+            {
+                var sp = DependencyResolver.For(Context.System);
+                var sender = Sender;
+                var props = sp.Props<ClusterShardingEntityPrinter>(sender, false);
+                Context.ActorOf(props, "printer" + _printCounter++);
+            });
+            
+            Process(PrintShardRegionNameData.Name, cmd =>
+            {
+                var sp = DependencyResolver.For(Context.System);
+                var sender = Sender;
+                var props = sp.Props<ClusterShardingEntityPrinter>(sender, true);
+                Context.ActorOf(props, "printer" + _printCounter++);
+            });
+            
             Process(RemoveInternalClusterShardingData.Name, command =>
             {
                 var journalPluginId = command.Arguments
