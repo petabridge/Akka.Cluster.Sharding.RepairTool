@@ -3,7 +3,8 @@
     <Copyright>Copyright © 2015-2021 Petabridge</Copyright>
     <Authors>Petabridge</Authors>
     <VersionPrefix>0.1.0</VersionPrefix>
-    <PackageReleaseNotes>First release</PackageReleaseNotes>
+    <PackageReleaseNotes>- First release of Akka.Cluster.Sharding.RepairTool
+- Added detailed README instructions: https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool</PackageReleaseNotes>
     <PackageIconUrl>
     </PackageIconUrl>
     <PackageProjectUrl>
