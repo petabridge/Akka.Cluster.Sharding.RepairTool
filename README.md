@@ -125,7 +125,7 @@ pbm localhost:9777 cluster-sharding-repair print-sharding-regions
 pbm localhost:9777 cluster-sharding-repair delete-sharding-data -t {regionName1} -t {regionName2}
 ```
 
-And that should purge all of the entity data that belongs to the `/system/sharding` actors only.
+And that should purge all of the entity data that belongs to the `/system/sharding` actors only. You'll see the output on the CLI as it's written.
 
 ## Support
 If you need support or help using this tool in practice, please [purchase an Akka.NET Support Plan](https://petabridge.com/services/support/). 
