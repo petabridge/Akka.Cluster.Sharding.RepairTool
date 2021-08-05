@@ -6,109 +6,128 @@ This project is a commandline repair tool for [Akka.NET](https://getakka.net/) u
 2. Are using sharding with `akka.cluster.sharding.state-store-mode=persistence`, currently the default as of Akka.NET v1.4+; and
 3. Have ran into situations where the entire cluster goes offline ungracefully and are thus left with "artifacts" of the previous cluster's state in their Akka.Persistence data, which prevents Akka.Cluster.Sharding from starting up correctly and placing all of the `ShardRegion` actors.
 
-## Supported Commands
-This project supports a wide variety of commands, all of which can be listed via:
+> **N.B.** You can avoid having to use this tool at all by changing your Akka.Cluster.Sharding settings to `akka.cluster.sharding.state-store-mode=ddata` - which uses [Akka.Cluster.DistributedData's in-memory replication](https://getakka.net/articles/clustering/distributed-data.html) to track this data instead.
 
-**Windows**
-```
-c:\> build.cmd help
-```
+## Caveat Emptor 
+This tool:
 
-**Linux / OS X**
-```
-c:\> build.sh help
-```
+* Will delete _all data_ that belongs to the built-in Akka.Cluster.Sharding actors, i.e. those with persistence ids `/system/sharding`;
+* Will _not_ delete any of your entity data;
+* SHOULD NEVER BE RUN AGAINST A LIVE, RUNNING CLUSTER; and
+* **You should really, really read the source code and the instructions before you attempt to use this tool**.
 
-However, please see this readme for full details.
+You only need this tool when your `ShardRegionCoordinator` actors die suddenly before they have a chance to cleanup their data. This is a relatively rare occurrence in practice but it does happen. 
 
-### Summary
+**This tool should not be a part of your standard CI/CD processes**. It is to be used in the case of disaster recovery / cluster corruption only.
 
-* `build.[cmd|sh] all` - runs the entire build system minus documentation: `NBench`, `Tests`, and `Nuget`.
-* `build.[cmd|sh] buildrelease` - compiles the solution in `Release` mode.
-* `build.[cmd|sh] tests` - compiles the solution in `Release` mode and runs the unit test suite (all projects that end with the `.Tests.csproj` suffix). All of the output will be published to the `./TestResults` folder.
-* `build.[cmd|sh] nbench` - compiles the solution in `Release` mode and runs the [NBench](https://nbench.io/) performance test suite (all projects that end with the `.Tests.Performance.csproj` suffix). All of the output will be published to the `./PerfResults` folder.
-* `build.[cmd|sh] nuget` - compiles the solution in `Release` mode and creates Nuget packages from any project that does not have `<IsPackable>false</IsPackable>` set and uses the version number from `RELEASE_NOTES.md`.
-* `build.[cmd|sh] nuget nugetprerelease=dev` - compiles the solution in `Release` mode and creates Nuget packages from any project that does not have `<IsPackable>false</IsPackable>` set - but in this instance all projects will have a `VersionSuffix` of `-beta{DateTime.UtcNow.Ticks}`. It's typically used for publishing nightly releases.
-* `build.[cmd|sh] nuget SignClientUser=$(signingUsername) SignClientSecret=$(signingPassword)` - compiles the solution in `Release` modem creates Nuget packages from any project that does not have `<IsPackable>false</IsPackable>` set using the version number from `RELEASE_NOTES.md`, and then signs those packages using the SignClient data below.
-* `build.[cmd|sh] nuget SignClientUser=$(signingUsername) SignClientSecret=$(signingPassword) nugetpublishurl=$(nugetUrl) nugetkey=$(nugetKey)` - compiles the solution in `Release` modem creates Nuget packages from any project that does not have `<IsPackable>false</IsPackable>` set using the version number from `RELEASE_NOTES.md`, signs those packages using the SignClient data below, and then publishes those packages to the `$(nugetUrl)` using NuGet key `$(nugetKey)`.
-* `build.[cmd|sh] DocFx` - compiles the solution in `Release` mode and then uses [DocFx](http://dotnet.github.io/docfx/) to generate website documentation inside the `./docs/_site` folder. Use the `./serve-docs.cmd` on Windows to preview the documentation.
+Once more, for repetition - **this tool should never be used in automated deployments**. You only need it in rare cases where the sharding system terminated abruptly, i.e. a process or hardware failure.
 
-This build script is powered by [FAKE](https://fake.build/); please see their API documentation should you need to make any changes to the [`build.fsx`](build.fsx) file.
+## How to Use `RepairTool`
+Akin to what many users do with [Lighthouse](https://github.com/petabridge/lighthouse), this project is designed to be consumed by users by **[cloning this repository](https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool)** as the first step. 
 
-### Deployment
-Petabridge.App uses Docker for deployment - to create Docker images for this project, please run the following command:
+### Build and Configure `RepairTool`
+This is because, due to the nature of how Akka.Persistence plugins are highly extensible, configuration-driven, and _store end-user data_ we thought it safest for the end-user to be in control of those dependencies. That isn't going to change - don't submit an issue asking us to.
 
-```
-build.cmd Docker
-```
+To get started with `RepairTool`, do the following:
 
-By default `build.fsx` will look for every `.csproj` file that has a `Dockerfile` in the same directory - from there the name of the `.csproj` will be converted into [the supported Docker image name format](https://docs.docker.com/engine/reference/commandline/tag/#extended-description), so "Petabridge.App.csproj" will be converted to an image called `petabridge.app:latest` and `petabridge.app:{VERSION}`, where version is determined using the rules defined in the section below.
+1. [Clone this repository](https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool);
+2. Install your specific [Akka.Persistence](https://getakka.net/articles/persistence/architecture.html) plugins that you use with Akka.Cluster.Sharding into the [`RepairTool` project](https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool/tree/dev/src/RepairTool);
+3. Add your connection string and Akka.Persistence configuration data to [`app.conf`](https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool/blob/dev/src/RepairTool/app.conf) - _follow the instructions of your specific Akka.Persistence plugin on how to do this_;
+4. As a final step, you need to replace [`Func<ActorSystem, ICurrentPersistenceIdsQuery>` block of code in `Program.cs`](https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool/blob/039caf6899b87a88e29a37af80ec0425b654246b/src/RepairTool/Program.cs#L35-L40) with your own Akka.Persistence plugin's code for retreiving the [`IReadJournal`](https://getakka.net/api/Akka.Persistence.Query.IReadJournal.html). You only really need to do this step if you are interested in being able to preview what data is going to be removed _before_ you remove it. The actual repair commands don't depend on it.
 
-#### Pushing to a Remote Docker Registry
-You can also specify a remote Docker registry URL and that will cause a copy of this Docker image to be published there as well:
+#### Examples of `ICurrentPersistenceIdsQuery` Mapping
+With the notable exception of Akka.Persistence.Redis [we are planning on fixing that](https://github.com/akkadotnet/Akka.Persistence.Redis/issues/158) and Akka.Persistence.Azure, [which we are also planning on fixing](https://github.com/petabridge/Akka.Persistence.Azure/issues/130), all actively maintained Akka.Persistence plugins support Akka.Persistence.Query and the `ICurrentPersistenceIdsQuery` method specifically.
 
-### Release Notes, Version Numbers, Etc
-This project will automatically populate its release notes in all of its modules via the entries written inside [`RELEASE_NOTES.md`](RELEASE_NOTES.md) and will automatically update the versions of all assemblies and NuGet packages via the metadata included inside [`common.props`](src/common.props).
+Here are some examples of how to set it up:
 
-**RELEASE_NOTES.md**
-```
-#### 0.1.0 October 05 2019 ####
-First release
+##### Akka.Persistence.SqlServer
+For SQL packages, you have to install a second NuGet package to get Akka.Persistence.Query support:
+```shell
+PS> Install-Package Akka.Persistence.Query.Sql
 ```
 
-In this instance, the NuGet and assembly version will be `0.1.0` based on what's available at the top of the `RELEASE_NOTES.md` file.
-
-**RELEASE_NOTES.md**
-```
-#### 0.1.0-beta1 October 05 2019 ####
-First release
-```
-
-But in this case the NuGet and assembly version will be `0.1.0-beta1`.
-
-If you add any new projects to the solution created with this template, be sure to add the following line to each one of them in order to ensure that you can take advantage of `common.props` for standardization purposes:
-
-```
-<Import Project="..\common.props" />
+```csharp
+Func<ActorSystem, ICurrentPersistenceIdsQuery> queryMapper = actorSystem =>
+{
+    var pq = PersistenceQuery.Get(actorSystem);
+    var readJournal = pq.ReadJournalFor<SqlReadJournal>(SqlReadJournal.Identifier);
+    
+    // works because `SqlReadJournal` implements `ICurrentPersistenceIdsQuery`, among other
+    // Akka.Persistence.Query interfaces
+    return readJournal;
+};
 ```
 
-### Conventions
-The attached build script will automatically do the following based on the conventions of the project names added to this project:
+##### Akka.Persistence.MongoDb
 
-* Any project name ending with `.Tests` will automatically be treated as a [XUnit2](https://xunit.github.io/) project and will be included during the test stages of this build script;
-* Any project name ending with `.Tests.Performance` will automatically be treated as a [NBench](https://github.com/petabridge/NBench) project and will be included during the test stages of this build script; and
-* Any project meeting neither of these conventions will be treated as a NuGet packaging target and its `.nupkg` file will automatically be placed in the `bin\nuget` folder upon running the `build.[cmd|sh] all` command.
-
-### DocFx for Documentation
-This solution also supports [DocFx](http://dotnet.github.io/docfx/) for generating both API documentation and articles to describe the behavior, output, and usages of your project. 
-
-All of the relevant articles you wish to write should be added to the `/docs/articles/` folder and any API documentation you might need will also appear there.
-
-All of the documentation will be statically generated and the output will be placed in the `/docs/_site/` folder. 
-
-#### Previewing Documentation
-To preview the documentation for this project, execute the following command at the root of this folder:
-
-```
-C:\> serve-docs.cmd
+```csharp
+Func<ActorSystem, ICurrentPersistenceIdsQuery> queryMapper = actorSystem =>
+    actorSystem.ReadJournalFor<MongoDbReadJournal>(MongoDbReadJournal.Identifier);
 ```
 
-This will use the built-in `docfx.console` binary that is installed as part of the NuGet restore process from executing any of the usual `build.cmd` or `build.sh` steps to preview the fully-rendered documentation. For best results, do this immediately after calling `build.cmd buildRelease`.
+##### Akka.Persistence.Azure
 
-### Code Signing via SignService
-This project uses [SignService](https://github.com/onovotny/SignService) to code-sign NuGet packages prior to publication. The `build.cmd` and `build.sh` scripts will automatically download the `SignClient` needed to execute code signing locally on the build agent, but it's still your responsibility to set up the SignService server per the instructions at the linked repository.
+**Runs, but doesn't work properly yet and is being fixed**: https://github.com/petabridge/Akka.Persistence.Azure/issues/130
 
-Once you've gone through the ropes of setting up a code-signing server, you'll need to set a few configuration options in your project in order to use the `SignClient`:
-
-* Add your Active Directory settings to [`appsettings.json`](appsettings.json) and
-* Pass in your signature information to the `signingName`, `signingDescription`, and `signingUrl` values inside `build.fsx`.
-
-Whenever you're ready to run code-signing on the NuGet packages published by `build.fsx`, execute the following command:
-
-```
-C:\> build.cmd nuget SignClientSecret={your secret} SignClientUser={your username}
+```csharp
+Func<ActorSystem, ICurrentPersistenceIdsQuery> queryMapper = actorSystem =>
+    actorSystem.ReadJournalFor<AzureTableStorageReadJournal>(AzureTableStorageReadJournal.Identifier);
 ```
 
-This will invoke the `SignClient` and actually execute code signing against your `.nupkg` files prior to NuGet publication.
+**Please feel free to send along additional PRs to update this list**.
 
-If one of these two values isn't provided, the code signing stage will skip itself and simply produce unsigned NuGet code packages.
+### Compilation
+After you have all of your code and configuration setup, it's time to produce your binaries.
+
+> `RepairTool` requires .NET 5 to build and run.
+
+In the root of the folder where you cloned this repository, run:
+
+```shell
+PS> build.cmd Docker
+```
+
+This will:
+
+* Create a local Docker image called `repairtool:latest` and `repairtool:{currentVersion}` and
+* Create a binary deployable version of `RepairTool.dll` in `/src/RepairTool/bin/Release/net5/publish/`.
+
+You can use either of these to run `RepairTool`.
+
+### Running `RepairTool`
+Once you have compiled your application and configured everything correctly, it's time to run `RepairTool`.
+
+`RepairTool` works using a custom [Petabridge.Cmd](https://cmd.petabridge.com/) palette that is included with the source code in this repository.
+
+This palette has the following commands (which you can discover via tab-autocompletion if using the [`pbm` CLI](https://cmd.petabridge.com/articles/install/index.html))
+
+* `cluster-sharding-repair print-sharding-regions` - lists the names of all of the `ShardRegion`s found inside the current Akka.Persistence connection.
+* `cluster-sharding-repair print-sharding-data` - lists all of the raw persistenceIds that belong to the Akka.Cluster.Sharding system.
+* `cluster-sharding-repair delete-sharding-data -t {regionName1} -t {regionName2}` - **the actual repair command**; deletes the data from both the Akka.Persistence journal and snapshot store for these `ShardRegion`s.
+
+By default `ReparTool` hosts its `Petabridge.Cmd` TCP port on port 9777, so you can do the following to run it:
+
+```shell
+docker run --name shardrepair -p 9777:9777 repairtool
+```
+
+or if you want to run it directly on your developer machine without Docker:
+
+```shell
+cd src/RepairTool 
+dotnet run -c Release
+```
+
+Next, we just connect to it via `pbm` and run these commands:
+
+```shell
+pbm localhost:9777 cluster-sharding-repair print-sharding-regions
+pbm localhost:9777 cluster-sharding-repair delete-sharding-data -t {regionName1} -t {regionName2}
+```
+
+And that should purge all of the entity data that belongs to the `/system/sharding` actors only.
+
+## Support
+If you need support or help using this tool in practice, please [purchase an Akka.NET Support Plan](https://petabridge.com/services/support/). 
+
+© 2015-2021 Petabridge
