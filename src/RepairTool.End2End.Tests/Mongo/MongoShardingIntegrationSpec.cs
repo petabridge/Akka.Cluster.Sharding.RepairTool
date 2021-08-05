@@ -171,13 +171,13 @@ namespace RepairTool.End2End.Tests.Mongo
                     await clientActual.ExecuteTextCommandAsync("cluster-sharding-repair print-sharding-regions",
                         cts.Token);
                 var sink1 = Sink.Seq<CommandResponse>();
-                var outputFlow1 = Flow.Create<CommandResponse>().Select(s =>
+                var outputFlow = Flow.Create<CommandResponse>().Select(s =>
                 {
                     Output.WriteLine(s.ToString());
                     return s;
                 });
 
-                var responses1 = await session1.Stream.Via(outputFlow1).Where(x => !x.Final).RunWith(sink1, materializer);
+                var responses1 = await session1.Stream.Via(outputFlow).Where(x => !x.Final).RunWith(sink1, materializer);
                 responses1.Select(x => x.Msg).Should().BeEquivalentTo(shardRegions);
                 
                 // query all shard persistent ids
@@ -186,13 +186,8 @@ namespace RepairTool.End2End.Tests.Mongo
                     cts.Token);
                 
                 var sink2 = Sink.Seq<CommandResponse>();
-                var outputFlow2 = Flow.Create<CommandResponse>().Select(s =>
-                {
-                    Output.WriteLine(s.ToString());
-                    return s;
-                });
 
-                var responses2 = await session2.Stream.Via(outputFlow2).Where(x => !x.Final)
+                var responses2 = await session2.Stream.Via(outputFlow).Where(x => !x.Final)
                     .RunWith(sink2, materializer);
 
                 // the raw persistent ids belonging to Cluster.Sharding should be formatted correctly
@@ -203,31 +198,22 @@ namespace RepairTool.End2End.Tests.Mongo
                     $"cluster-sharding-repair delete-sharding-data {string.Join(" ", shardRegions.Select(c => $"-t {c}"))}", cts.Token);
                 
                 var sink3 = Sink.Seq<CommandResponse>();
-                var outputFlow3 = Flow.Create<CommandResponse>().Select(s =>
-                {
-                    Output.WriteLine(s.ToString());
-                    return s;
-                });
                 
-                var responses3 = await session3.Stream.Via(outputFlow2)
+                var responses3 = await session3.Stream.Via(outputFlow)
                     .RunWith(sink3, materializer);
 
                 // should have completed successfully
                 responses3.Any(x => x.IsError).Should().BeFalse();
                 
                 // re-run shardRegion query - should return nothing
-                var session4 =
-                    await clientActual.ExecuteTextCommandAsync("cluster-sharding-repair print-sharding-regions",
-                        cts.Token);
-                var sink4 = Sink.Seq<CommandResponse>();
-                var outputFlow4 = Flow.Create<CommandResponse>().Select(s =>
-                {
-                    Output.WriteLine(s.ToString());
-                    return s;
-                });
+                // manually query event data for one of our shard regions and see if anything is left
+                var readjournal = actorSystem.ReadJournalFor<MongoDbReadJournal>(MongoDbReadJournal.Identifier);
+                var sink4 = Sink.Seq<EventEnvelope>();
+                var response4 = await readjournal.CurrentEventsByPersistenceId(responses2[0].Msg, 0L, Int64.MaxValue)
+                    .RunWith(sink4, materializer);
 
-                var responses4 = await session1.Stream.Via(outputFlow4).Where(x => !x.Final).RunWith(sink4, materializer);
-                responses4.Count.Should().Be(0);
+                response4.Count.Should().Be(0);
+
             }
             finally
             {
