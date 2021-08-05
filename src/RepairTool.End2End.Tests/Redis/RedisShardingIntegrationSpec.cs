@@ -8,9 +8,7 @@ using Akka.Cluster.Sharding;
 using Akka.Configuration;
 using Akka.DependencyInjection;
 using Akka.Event;
-using Akka.Persistence;
 using Akka.Persistence.Query;
-using Akka.Persistence.Redis;
 using Akka.Persistence.Redis.Query;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -20,13 +18,11 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Petabridge.Cmd;
 using Petabridge.Cmd.Cluster.Sharding.Repair;
-using Petabridge.Cmd.Common.Client;
 using RepairTool.End2End.Tests.Actors;
 using Xunit;
 using Xunit.Abstractions;
-using Envelope = RepairTool.End2End.Tests.Actors.Envelope;
 
-namespace RepairTool.End2End.Tests
+namespace RepairTool.End2End.Tests.Redis
 {
     [Collection("RedisSpec")]
     public class RedisShardingIntegrationSpec : TestKit
@@ -62,9 +58,7 @@ namespace RepairTool.End2End.Tests
             var bootstrap = BootstrapSetup.Create().WithConfig(config).WithActorRefProvider(ProviderSelection.Cluster.Instance);
             return bootstrap.And(DependencyResolverSetup.Create(serviceCollection.BuildServiceProvider()));
         }
-        
-        public ITestOutputHelper Output { get; }
-        
+
         public RedisFixture Fixture { get; }
         
         /// <summary>
@@ -78,12 +72,11 @@ namespace RepairTool.End2End.Tests
         
         protected RedisShardingIntegrationSpec(ITestOutputHelper output, RedisFixture fixture, int databaseId) : base(CreateSetup(fixture, databaseId), output: output)
         {
-            Output = output;
             Fixture = fixture;
             AkkaPersistenceConfig = Config(fixture, databaseId);
         }
         
-        [Fact]
+        [Fact(Skip = "CurrentPersistenceIds not supported in Akka.Persistence.Redis v1.4.20")]
         public async Task ShardingCreateAndPurgeRedisSpec()
         {
             var shardRegions = new[] {"typeA", "typeB"};
@@ -108,7 +101,7 @@ namespace RepairTool.End2End.Tests
             foreach (var i in Enumerable.Range(0, count))
             {
                 var s = i.ToString();
-                var e = new Envelope(s, s);
+                var e = new ShardEnvelope(s, s);
                 shardRegion1.Tell(e);
                 shardRegion2.Tell(e);
             }
@@ -131,8 +124,8 @@ namespace RepairTool.End2End.Tests
             {
                 /* BEGIN ACT */
                 
-                // start running in background
-                await runner.Start(QueryMapper, AkkaPersistenceConfig, cts.Token);
+                // start running in background without console lifetime
+                await runner.Start(QueryMapper, AkkaPersistenceConfig, cts.Token, useConsoleLifetime:false);
 
                 // wait for Pbm to start
                 await AwaitAssertAsync(async () =>

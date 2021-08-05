@@ -15,10 +15,10 @@ namespace RepairTool
     /// <summary>
     /// Implementation of repair tool
     /// </summary>
-    public class RepairRunner : IAsyncDisposable
+    public class RepairRunner : IDisposable
     {
         public async Task Start(Func<ActorSystem, ICurrentPersistenceIdsQuery> queryIdMapper, Config config,
-            CancellationToken? token = null)
+            CancellationToken? token = null, bool useConsoleLifetime = true)
         {
             /*
              * STARTUP CHECK
@@ -42,7 +42,7 @@ namespace RepairTool
                     "No akka.persistence.snapshot-store.plugin defined inside 'app.conf'. App will not run correctly. " +
                     "Please see https://github.com/petabridge/Akka.Cluster.Sharding.RepairTool for instructions.");
 
-            _host = new HostBuilder()
+            var partial = new HostBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddLogging();
@@ -57,9 +57,14 @@ namespace RepairTool
                         return queryIdMapper(pbmService.Sys);
                     });
                 })
-                .ConfigureLogging((hostContext, configLogging) => { configLogging.AddConsole(); })
-                .UseConsoleLifetime()
-                .Build();
+                .ConfigureLogging((hostContext, configLogging) => { configLogging.AddConsole(); });
+
+            if (useConsoleLifetime) // toggle this so we can turn it off for unit testing
+            {
+                partial = partial.UseConsoleLifetime();
+            }
+
+            _host = partial.Build();
 
             await _host.StartAsync(finalToken);
             
@@ -86,12 +91,28 @@ namespace RepairTool
 
         public async ValueTask StopAsync()
         {
-            await _host.StopAsync();
+            if (_host == null)
+            {
+                await Task.CompletedTask;
+            }
+            else
+            {
+                try
+                {
+                    // abort after 3 seconds
+                    var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                    await _host.StopAsync(cts.Token);
+                }
+                finally
+                {
+                    _host.Dispose();
+                }
+            }
         }
-        
-        public async ValueTask DisposeAsync()
+
+        public void Dispose()
         {
-            await _host.StopAsync();
+            _host?.Dispose();
         }
     }
 }

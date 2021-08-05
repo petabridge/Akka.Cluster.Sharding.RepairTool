@@ -1,4 +1,5 @@
-﻿using Akka;
+﻿using System;
+using Akka;
 using Akka.Persistence;
 using Akka.Actor;
 using Akka.Cluster.Sharding;
@@ -9,7 +10,7 @@ namespace RepairTool.End2End.Tests.Actors
     {
         public EntityActor(string persistenceId)
         {
-            PersistenceId = persistenceId;
+            PersistenceId = persistenceId + Guid.NewGuid();
             
             Command<string>(str =>
             {
@@ -23,9 +24,9 @@ namespace RepairTool.End2End.Tests.Actors
         public override string PersistenceId { get; }
     }
 
-    public sealed class Envelope
+    public sealed class ShardEnvelope
     {
-        public Envelope(string entityId, string message)
+        public ShardEnvelope(string entityId, string message)
         {
             EntityId = entityId;
             Message = message;
@@ -48,7 +49,7 @@ namespace RepairTool.End2End.Tests.Actors
 
         public override string EntityId(object message)
         {
-            if (message is Envelope e)
+            if (message is ShardEnvelope e)
             {
                 return e.EntityId;
             }
@@ -58,7 +59,7 @@ namespace RepairTool.End2End.Tests.Actors
 
         public override object EntityMessage(object message)
         {
-            if (message is Envelope e)
+            if (message is ShardEnvelope e)
             {
                 return e.Message;
             }
