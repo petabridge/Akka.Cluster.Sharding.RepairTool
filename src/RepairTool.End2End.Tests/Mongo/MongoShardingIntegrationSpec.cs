@@ -182,7 +182,6 @@ namespace RepairTool.End2End.Tests.Mongo
             {
                 cts.Cancel();
                 await runner.StopAsync();
-                var fart = true;
             }
         }
     }
