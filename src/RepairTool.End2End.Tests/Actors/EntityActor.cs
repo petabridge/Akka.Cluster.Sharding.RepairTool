@@ -10,7 +10,7 @@ namespace RepairTool.End2End.Tests.Actors
     {
         public EntityActor(string persistenceId)
         {
-            PersistenceId = persistenceId + Guid.NewGuid();
+            PersistenceId = persistenceId;
             
             Command<string>(str =>
             {
