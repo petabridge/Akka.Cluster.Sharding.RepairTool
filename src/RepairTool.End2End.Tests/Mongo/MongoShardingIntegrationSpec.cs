@@ -32,6 +32,7 @@ namespace RepairTool.End2End.Tests.Mongo
         public static Config Config(MongoFixture fixture, int id)
         {
             return ConfigurationFactory.ParseString($@"
+            akka.coordinated-shutdown.run-by-actor-system-terminate = off # for unclean shutdowns
             akka.test.single-expect-default = 10s
             akka.cluster.sharding.remember-entities = true
             akka.persistence {{
@@ -127,7 +128,7 @@ namespace RepairTool.End2End.Tests.Mongo
             // receive 200 acks - should be enough to create ~10 shards for all sets of entities
             Within(TimeSpan.FromSeconds(20), () => { ReceiveN(count * shardRegions.Length); });
 
-            // terminate host node - simulate total cluster shutdown
+            // abort the ActorSystem to force an unclean termination
             await Sys.Terminate();
 
             var runner = new RepairRunner();
