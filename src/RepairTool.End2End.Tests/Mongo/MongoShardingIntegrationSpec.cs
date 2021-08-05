@@ -109,10 +109,10 @@ namespace RepairTool.End2End.Tests.Mongo
             // start sharding system
             var sharding = ClusterSharding.Get(Sys);
 
-            var shardRegion1 = sharding.Start(shardRegions[0], s => Props.Create(() => new EntityActor(s)),
+            var shardRegion1 = sharding.Start(shardRegions[0], s => Props.Create(() => new EntityActor(s + shardRegions[0])),
                 ClusterShardingSettings.Create(Sys), new MessageRouter());
 
-            var shardRegion2 = sharding.Start(shardRegions[1], s => Props.Create(() => new EntityActor(s)),
+            var shardRegion2 = sharding.Start(shardRegions[1], s => Props.Create(() => new EntityActor(s + shardRegions[1])),
                 ClusterShardingSettings.Create(Sys), new MessageRouter());
 
             var count = 100;
@@ -221,6 +221,46 @@ namespace RepairTool.End2End.Tests.Mongo
                 cts.Cancel();
                 await runner.StopAsync();
             }
+
+            /* repair tool is finished - attempt to restart sharding */
+            // form a single node cluster
+            var setup = BootstrapSetup.Create().WithConfig(Sys.Settings.Config)
+                .WithActorRefProvider(ProviderSelection.Cluster.Instance);
+            var actorSystem2 = ActorSystem.Create(Sys.Name, setup);
+            
+            // add Output logger to system
+            var logger2 =  actorSystem2.As<ExtendedActorSystem>()
+                .SystemActorOf(Props.Create(() => new TestOutputLogger(Output)), "log-test");
+            logger2.Tell(new InitializeLogger(actorSystem2.EventStream));
+            
+            var cluster2 = Akka.Cluster.Cluster.Get(actorSystem2);
+            await cluster2.JoinAsync(cluster2.SelfAddress);
+            await AwaitAssertAsync(() => cluster2.State.Members.Count.Should().Be(1));
+
+            // start sharding system
+            var sharding2 = ClusterSharding.Get(actorSystem2);
+
+            var shardRegion1b = sharding2.Start(shardRegions[0], s => Props.Create(() => new EntityActor(s + shardRegions[0])),
+                ClusterShardingSettings.Create(actorSystem2), new MessageRouter());
+
+            var shardRegion2b = sharding2.Start(shardRegions[1], s => Props.Create(() => new EntityActor(s + shardRegions[1])),
+                ClusterShardingSettings.Create(actorSystem2), new MessageRouter());
+
+            var probe = CreateTestProbe(actorSystem2);
+            
+            foreach (var i in Enumerable.Range(0, count))
+            {
+                var s = i.ToString();
+                var e = new ShardEnvelope(s, s);
+                shardRegion1b.Tell(e, probe);
+                shardRegion2b.Tell(e, probe);
+            }
+
+            // receive 200 acks - should be enough to create ~10 shards for all sets of entities
+            Within(TimeSpan.FromSeconds(20), () => { probe.ReceiveN(count * shardRegions.Length); });
+
+            // terminate host node - simulate total cluster shutdown
+            await Sys.Terminate();
         }
     }
 }
