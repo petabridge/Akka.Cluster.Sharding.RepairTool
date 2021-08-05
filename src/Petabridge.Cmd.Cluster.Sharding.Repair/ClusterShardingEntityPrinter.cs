@@ -58,7 +58,7 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
 
         protected override void PreRestart(Exception reason, object message)
         {
-            _reporter.Tell(new CommandResponse("Errored. Restarting..."));
+            _reporter.Tell(new ErroredCommandResponse(reason.Message + Environment.NewLine + reason.StackTrace, true));
             base.PreRestart(reason, message);
         }
     }

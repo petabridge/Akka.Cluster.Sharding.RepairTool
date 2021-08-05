@@ -29,17 +29,18 @@ namespace RepairTool
     public class AkkaService : IHostedService, IPbmClientService
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly Config _config;
 
-        public AkkaService(IServiceProvider serviceProvider)
+        public AkkaService(IServiceProvider serviceProvider, Config config)
         {
             _serviceProvider = serviceProvider;
+            _config = config;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-             var config = ConfigurationFactory.ParseString(File.ReadAllText("app.conf")).BootstrapFromDocker();
-             var bootstrap = BootstrapSetup.Create()
-                .WithConfig(config) // load HOCON
+            var bootstrap = BootstrapSetup.Create()
+                .WithConfig(_config) // load HOCON
                 .WithActorRefProvider(ProviderSelection.Cluster.Instance); // launch Akka.Cluster
 
             // N.B. `WithActorRefProvider` isn't actually needed here - the HOCON file already specifies Akka.Cluster

@@ -46,6 +46,7 @@ namespace RepairTool
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddLogging();
+                    services.AddSingleton<Config>(config);
                     services.AddSingleton<IPbmClientService, AkkaService>();
                     services.AddTransient<IHostedService, AkkaService>(sp =>
                         (AkkaService) sp.GetRequiredService<IPbmClientService>()); // runs Akka.NET
