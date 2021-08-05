@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>$(LibraryFramework)</TargetFramework>
+        <Description>Akka.Cluster.Sharding Petabridge.Cmd palettes for shard persistence storage repair.</Description>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Akka.Cluster.Sharding" Version="$(AkkaVersion)" />
+        <PackageReference Include="Petabridge.Cmd.Host" Version="$(PbmVersion)" />
+        <PackageReference Include="Akka.Persistence.Query" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.DependencyInjection" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.Persistence.Query.Sql" Version="$(AkkaVersion)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Properties" />
+    </ItemGroup>
+</Project>

@@ -1,17 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\common.props" />
-
-
-  <PropertyGroup>
+    <PropertyGroup>
     <TargetFramework>$(NetCoreFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
-
-
-  <ItemGroup>
-    <None Remove="app.conf" />
-  </ItemGroup>
-
 
   <ItemGroup>
     <Content Include="app.conf">
@@ -22,15 +13,17 @@
   <ItemGroup>
     <PackageReference Include="Akka.Cluster" Version="$(AkkaVersion)" />
     <PackageReference Include="Akka.DependencyInjection" Version="$(AkkaVersion)" />
-    <PackageReference Include="Petabridge.Cmd.Cluster" Version="$(PbmVersion)" />
-    <PackageReference Include="Petabridge.Cmd.Remote" Version="$(PbmVersion)" />
     <PackageReference Include="Akka.Bootstrap.Docker">
-      <Version>0.5.2</Version>
+      <Version>0.5.3</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionsVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="$(MicrosoftExtensionsVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionsVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Petabridge.Cmd.Cluster.Sharding.Repair\Petabridge.Cmd.Cluster.Sharding.Repair.csproj" />
   </ItemGroup>
 
 </Project>
