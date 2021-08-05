@@ -32,8 +32,9 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
             {
                 if (_regionsOnly && str.Contains("Coordinator"))
                 {
-                    var (startPos, endPos) = (str.IndexOf("/system/sharding/", StringComparison.Ordinal), str.IndexOf("Coordinator", StringComparison.Ordinal));
-                    var regionName = str.Substring(startPos, endPos);
+                    var stub = "/system/sharding/";
+                    var (startPos, endPos) = (str.IndexOf(stub, StringComparison.Ordinal), str.IndexOf("Coordinator", StringComparison.Ordinal));
+                    var regionName = str.Substring(startPos + stub.Length, endPos - stub.Length - startPos);
                     _reporter.Tell(new CommandResponse(regionName, final:false));
                     return;
                 }
