@@ -1,6 +1,10 @@
-# Petabridge.App
+# Akka.Cluster.Sharding RepairTool
 
-Update this readme file with your details.
+This project is a commandline repair tool for [Akka.NET](https://getakka.net/) users who:
+
+1. Are using [Akka.Cluster.Sharding](https://getakka.net/articles/clustering/cluster-sharding.html);
+2. Are using sharding with `akka.cluster.sharding.state-store-mode=persistence`, currently the default as of Akka.NET v1.4+; and
+3. Have ran into situations where the entire cluster goes offline ungracefully and are thus left with "artifacts" of the previous cluster's state in their Akka.Persistence data, which prevents Akka.Cluster.Sharding from starting up correctly and placing all of the `ShardRegion` actors.
 
 ## Supported Commands
 This project supports a wide variety of commands, all of which can be listed via:

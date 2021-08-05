@@ -33,6 +33,7 @@ namespace RepairTool.End2End.Tests.Mongo
         {
             return ConfigurationFactory.ParseString($@"
             akka.test.single-expect-default = 10s
+            akka.cluster.sharding.remember-entities = true
             akka.persistence {{
                 publish-plugin-commands = on
                 journal {{
