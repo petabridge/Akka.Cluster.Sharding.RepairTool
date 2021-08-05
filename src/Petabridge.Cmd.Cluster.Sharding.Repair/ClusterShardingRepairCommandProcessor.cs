@@ -59,7 +59,9 @@ namespace Petabridge.Cmd.Cluster.Sharding.Repair
             }
             
             public override string PersistenceId { get; }
-            
+
+            public override Recovery Recovery { get; } = Recovery.None;
+
             protected override bool ReceiveRecover(object message)
             {
                 switch (message)

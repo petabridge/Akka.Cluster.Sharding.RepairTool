@@ -130,7 +130,9 @@ namespace RepairTool.End2End.Tests.Mongo
             await Sys.Terminate();
 
             var runner = new RepairRunner();
-            using var cts = new CancellationTokenSource();
+            
+            // two minutes to run everything
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
             /* END ARRANGE */
 
@@ -169,14 +171,63 @@ namespace RepairTool.End2End.Tests.Mongo
                     await clientActual.ExecuteTextCommandAsync("cluster-sharding-repair print-sharding-regions",
                         cts.Token);
                 var sink1 = Sink.Seq<CommandResponse>();
-                var outputFlow = Flow.Create<CommandResponse>().Select(s =>
+                var outputFlow1 = Flow.Create<CommandResponse>().Select(s =>
                 {
                     Output.WriteLine(s.ToString());
                     return s;
                 });
 
-                var responses = await session1.Stream.Via(outputFlow).Where(x => !x.Final).RunWith(sink1, materializer);
-                responses.Select(x => x.Msg).Should().BeEquivalentTo(shardRegions);
+                var responses1 = await session1.Stream.Via(outputFlow1).Where(x => !x.Final).RunWith(sink1, materializer);
+                responses1.Select(x => x.Msg).Should().BeEquivalentTo(shardRegions);
+                
+                // query all shard persistent ids
+                var session2 = await clientActual.ExecuteTextCommandAsync(
+                    "cluster-sharding-repair print-sharding-data",
+                    cts.Token);
+                
+                var sink2 = Sink.Seq<CommandResponse>();
+                var outputFlow2 = Flow.Create<CommandResponse>().Select(s =>
+                {
+                    Output.WriteLine(s.ToString());
+                    return s;
+                });
+
+                var responses2 = await session2.Stream.Via(outputFlow2).Where(x => !x.Final)
+                    .RunWith(sink2, materializer);
+
+                // the raw persistent ids belonging to Cluster.Sharding should be formatted correctly
+                responses2.Select(x => x.Msg).All(x => x.StartsWith("/system/sharding")).Should().BeTrue();
+                
+                // time to delete all of our raw data
+                var session3 = await clientActual.ExecuteTextCommandAsync(
+                    $"cluster-sharding-repair delete-sharding-data {string.Join(" ", shardRegions.Select(c => $"-t {c}"))}", cts.Token);
+                
+                var sink3 = Sink.Seq<CommandResponse>();
+                var outputFlow3 = Flow.Create<CommandResponse>().Select(s =>
+                {
+                    Output.WriteLine(s.ToString());
+                    return s;
+                });
+                
+                var responses3 = await session3.Stream.Via(outputFlow2)
+                    .RunWith(sink3, materializer);
+
+                // should have completed successfully
+                responses3.Any(x => x.IsError).Should().BeFalse();
+                
+                // re-run shardRegion query - should return nothing
+                var session4 =
+                    await clientActual.ExecuteTextCommandAsync("cluster-sharding-repair print-sharding-regions",
+                        cts.Token);
+                var sink4 = Sink.Seq<CommandResponse>();
+                var outputFlow4 = Flow.Create<CommandResponse>().Select(s =>
+                {
+                    Output.WriteLine(s.ToString());
+                    return s;
+                });
+
+                var responses4 = await session1.Stream.Via(outputFlow4).Where(x => !x.Final).RunWith(sink4, materializer);
+                responses4.Count.Should().Be(0);
             }
             finally
             {
