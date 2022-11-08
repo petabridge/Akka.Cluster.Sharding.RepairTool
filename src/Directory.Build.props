@@ -24,6 +24,6 @@
     <PbmVersion>1.0.2</PbmVersion>
     <DockerVersion>3.125.5</DockerVersion>
     <FluentAssertionsVersion>6.4.0</FluentAssertionsVersion>
-    <MicrosoftExtensionsVersion>6.0.0</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsVersion>7.0.0</MicrosoftExtensionsVersion>
   </PropertyGroup>
 </Project>
