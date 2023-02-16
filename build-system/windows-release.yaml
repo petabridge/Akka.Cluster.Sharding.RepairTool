@@ -2,13 +2,15 @@
 # See https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema for reference
 
 pool:
-  vmImage: vs2017-win2016
+  vmImage: windows-latest
   demands: Cmd
 
 trigger:
   branches:
     include:
       - refs/tags/*
+      
+pr: none
 
 variables:
   - name: githubConnectionName
