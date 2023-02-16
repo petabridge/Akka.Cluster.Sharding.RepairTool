@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>$(NetTestVersion)</TargetFramework>
+        <TargetFrameworks>$(NetCoreFramework);$(NetTestVersion)</TargetFrameworks>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
