@@ -21,7 +21,7 @@
 	<NetTestVersion>net6</NetTestVersion>  
     <XunitVersion>2.4.2</XunitVersion>
     <TestSdkVersion>17.5.0</TestSdkVersion>
-    <AkkaVersion>1.4.49</AkkaVersion>
+    <AkkaVersion>1.5.3</AkkaVersion>
     <PbmVersion>1.2.2</PbmVersion>
     <DockerVersion>3.125.12</DockerVersion>
     <FluentAssertionsVersion>6.10.0</FluentAssertionsVersion>
