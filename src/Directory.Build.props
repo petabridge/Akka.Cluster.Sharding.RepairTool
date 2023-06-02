@@ -20,7 +20,7 @@
     <NetCoreFramework>net5</NetCoreFramework>
 	<NetTestVersion>net6</NetTestVersion>  
     <XunitVersion>2.4.2</XunitVersion>
-    <TestSdkVersion>17.5.0</TestSdkVersion>
+    <TestSdkVersion>17.6.1</TestSdkVersion>
     <AkkaVersion>1.4.49</AkkaVersion>
     <PbmVersion>1.2.2</PbmVersion>
     <DockerVersion>3.125.12</DockerVersion>
